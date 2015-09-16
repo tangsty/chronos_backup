@@ -51,7 +51,7 @@ def restore(url, log_file_location, user, password, auth_simple, auth_digest):
                 r = post_req(url_to_send, payload, headers, user, password,
                              auth_simple, auth_digest)
             if not r or r.status_code != 200:
-                print("  FAILED to get json from %s: %d" % (url, r.status_code))
+                print("  FAILED to post json to %s: %d" % (url, r.status_code))
                 return
             print (r.text)
 
