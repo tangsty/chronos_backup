@@ -61,4 +61,7 @@ target/
 # IDEA
 .idea
 
+# it backup
+*.json
+
 # Created by .ignore support plugin (hsz.mobi)
