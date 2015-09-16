@@ -1,16 +1,21 @@
 import requests
-from requests.auth import HTTPBasicAuth
+from requests.auth import HTTPBasicAuth, HTTPDigestAuth
 import ujson
 from StringIO import StringIO
 from time import strftime, localtime, time
 import argparse
 
 
-def backup(url, backup, user, password):
+def backup(url, backup, user, password, auth_simple, auth_digest):
     url += '/scheduler/jobs'
+    r = None
     if user:
-        r = requests.get(url, auth=HTTPBasicAuth(user, password))
-    else:
+        if auth_simple:
+            r = requests.get(url, auth=HTTPBasicAuth(user, password))
+        elif auth_digest:
+            r = requests.get(url, auth=HTTPDigestAuth(user, password))
+    if r is None:
+        print("NO authentication")
         r = requests.get(url)
     time_tag = strftime("%Y%m%d_%H%M%S", localtime(time()))
     output_log_location = backup + '_' + time_tag + '.json'
@@ -19,7 +24,7 @@ def backup(url, backup, user, password):
     print("Backup json saved into %s" % output_log_location)
 
 
-def restore(url, log_file_location, user, password):
+def restore(url, log_file_location, user, password, auth_simple, auth_digest):
     for line in open(log_file_location):
         io = StringIO(line)
         json_decode = ujson.load(io)
@@ -30,21 +35,34 @@ def restore(url, log_file_location, user, password):
                 url_to_send = url + '/scheduler/dependency'
                 headers = {'Content-type': 'application/json'}
                 if user:
+                    if auth_simple:
+                        r = requests.post(url_to_send,
+                                          auth=HTTPBasicAuth(user, password),
+                                          data=payload, headers=headers)
+                    elif auth_digest:
+                        r = requests.post(url_to_send,
+                                          auth=HTTPDigestAuth(user, password),
+                                          data=payload, headers=headers)
+                if r is None:
+                    print("NO authentication")
                     r = requests.post(url_to_send,
-                                      auth=HTTPBasicAuth(user, password),
                                       data=payload, headers=headers)
-                else:
-                    r = requests.post(url_to_send, data=payload, headers=headers)
                 print (r.text)
             else:
                 payload = ujson.dumps(item)
                 url_to_send = url + '/scheduler/iso8601'
                 headers = {'Content-type': 'application/json'}
                 if user:
-                    r = requests.post(url_to_send,
-                                      auth=HTTPBasicAuth(user, password),
-                                      data=payload, headers=headers)
-                else:
+                    if auth_simple:
+                        r = requests.post(url_to_send,
+                                          auth=HTTPBasicAuth(user, password),
+                                          data=payload, headers=headers)
+                    elif auth_digest:
+                        r = requests.post(url_to_send,
+                                          auth=HTTPDigestAuth(user, password),
+                                          data=payload, headers=headers)
+                if r is None:
+                    print("NO authentication")
                     r = requests.post(url_to_send,
                                       data=payload, headers=headers)
                 print (r.text)
@@ -71,11 +89,17 @@ def main():
     parser.add_argument('-P', '--password',
                         help="Specify Chronos HTTP User's password",
                         default=None)
+    parser.add_argument('-s', '--simple', action="store_true",
+                        help="http simple authentication")
+    parser.add_argument('-d', '--digest', action="store_true",
+                        help="http digest authentication")
     args = parser.parse_args()
     if args.backup is not None:
-        backup(args.url, args.backup, args.user, args.password)
+        backup(args.url, args.backup, args.user, args.password,
+               args.simple, args.digest)
     elif args.restore is not None:
-        restore(args.url, args.restore, args.user, args.password)
+        restore(args.url, args.restore, args.user, args.password,
+                args.simple, args.digest)
     else:
         print("NO action!")
 
