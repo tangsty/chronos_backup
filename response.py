@@ -6,7 +6,7 @@ from time import strftime, localtime, time
 import argparse
 
 
-def backup(url, backup, user, password, auth_simple, auth_digest):
+def backup(url, log_file, user, password, auth_simple, auth_digest):
     url += '/scheduler/jobs'
     r = None
     if user:
@@ -18,7 +18,7 @@ def backup(url, backup, user, password, auth_simple, auth_digest):
         print("NO authentication")
         r = requests.get(url)
     time_tag = strftime("%Y%m%d_%H%M%S", localtime(time()))
-    output_log_location = backup + '_' + time_tag + '.json'
+    output_log_location = log_file + '_' + time_tag + '.json'
     with open(output_log_location, 'w') as output:
         output.write(r.text)
     print("Backup json saved into %s" % output_log_location)
